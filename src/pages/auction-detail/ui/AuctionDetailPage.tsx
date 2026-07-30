@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { Alert, Anchor, Button, Container, Group, Skeleton, Stack } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { ApiError } from '@/shared/api/error';
-import {type AuctionDetailTab, useAuctionDetail} from '@/entities/auction';
+import { type AuctionDetailTab, useAuctionDetail } from '@/entities/auction';
 import { AuctionDetailWidget } from '@/widgets/auction-detail';
 
 interface AuctionDetailPageProps {
@@ -17,7 +17,7 @@ export function AuctionDetailPage({
   auctionUuid,
   tab,
   onTabChange,
-  betSlot
+  betSlot,
 }: AuctionDetailPageProps) {
   const { data, isLoading, isError, error, refetch } = useAuctionDetail(auctionUuid);
   const isNotFound = error instanceof ApiError && error.status === 404;
@@ -56,13 +56,9 @@ export function AuctionDetailPage({
           </Alert>
         )}
 
-        {data &&
-          <AuctionDetailWidget
-            detail={data}
-            tab={tab}
-            onTabChange={onTabChange}
-          />
-        }
+        {data && (
+          <AuctionDetailWidget detail={data} tab={tab} onTabChange={onTabChange} />
+        )}
       </Stack>
 
       {betSlot}

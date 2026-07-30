@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  bestFirst,
-  isReverseAuction,
-  validateBidPrice,
-} from './trading';
+import { bestFirst, isReverseAuction, validateBidPrice } from './trading';
 
 describe('auction direction', () => {
   it('treats Down and Request as reverse (lower is better)', () => {

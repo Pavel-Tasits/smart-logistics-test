@@ -10,14 +10,12 @@ export interface BetBounds {
   step: number | null;
 }
 
-export function isCompetitiveAuction(
-    type: AuctionType,
-): type is CompetitiveAuctionType {
+export function isCompetitiveAuction(type: AuctionType): type is CompetitiveAuctionType {
   return type === 'Request' || type === 'Up' || type === 'Down';
 }
 
 export function isReverseAuction(
-    type: AuctionType,
+  type: AuctionType,
 ): type is Extract<CompetitiveAuctionType, 'Down' | 'Request'> {
   return type === 'Down' || type === 'Request';
 }
@@ -27,11 +25,9 @@ export function isReverseAuction(
  * лучшая ставка располагается первой.
  */
 export function bestFirst(
-    type: CompetitiveAuctionType,
+  type: CompetitiveAuctionType,
 ): (a: number, b: number) => number {
-  return isReverseAuction(type)
-      ? (a, b) => a - b
-      : (a, b) => b - a;
+  return isReverseAuction(type) ? (a, b) => a - b : (a, b) => b - a;
 }
 
 /**
@@ -39,16 +35,16 @@ export function bestFirst(
  * Для фиксированной или неизвестной модели торгов следующей цены нет.
  */
 export function calculateNextBidPrice(
-    type: AuctionType,
-    current: number | null,
-    step: number | null,
+  type: AuctionType,
+  current: number | null,
+  step: number | null,
 ): number | null {
   if (
-      current == null ||
-      step == null ||
-      !Number.isFinite(current) ||
-      !Number.isFinite(step) ||
-      step <= 0
+    current == null ||
+    step == null ||
+    !Number.isFinite(current) ||
+    !Number.isFinite(step) ||
+    step <= 0
   ) {
     return null;
   }
@@ -68,28 +64,16 @@ export function calculateNextBidPrice(
 }
 
 function approximatelyEqual(a: number, b: number): boolean {
-  return (
-      Math.abs(a - b) <=
-      Number.EPSILON *
-      Math.max(1, Math.abs(a), Math.abs(b)) *
-      10
-  );
+  return Math.abs(a - b) <= Number.EPSILON * Math.max(1, Math.abs(a), Math.abs(b)) * 10;
 }
 
-function isAlignedToStep(
-    price: number,
-    base: number,
-    step: number,
-): boolean {
+function isAlignedToStep(price: number, base: number, step: number): boolean {
   const units = (price - base) / step;
 
   return approximatelyEqual(units, Math.round(units));
 }
 
-export function validateBidPrice(
-    price: number,
-    bounds: BetBounds,
-): ValidationError[] {
+export function validateBidPrice(price: number, bounds: BetBounds): ValidationError[] {
   if (!Number.isFinite(price) || price <= 0) {
     return [
       {
@@ -126,9 +110,9 @@ export function validateBidPrice(
       errors.push({
         field: 'price',
         message:
-            min != null
-                ? `Цена должна изменяться с шагом ${step}, начиная от ${min}`
-                : `Цена должна быть кратна шагу ${step}`,
+          min != null
+            ? `Цена должна изменяться с шагом ${step}, начиная от ${min}`
+            : `Цена должна быть кратна шагу ${step}`,
         code: 'not_aligned_to_step',
       });
     }

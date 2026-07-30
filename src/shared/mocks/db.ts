@@ -12,7 +12,12 @@ import type {
   ValidationError,
 } from '@/shared/api/types';
 import { CURRENT_USER } from '@/shared/config';
-import {bestFirst, calculateNextBidPrice, isCompetitiveAuction, validateBidPrice} from '@/shared/lib/trading';
+import {
+  bestFirst,
+  calculateNextBidPrice,
+  isCompetitiveAuction,
+  validateBidPrice,
+} from '@/shared/lib/trading';
 import { AUCTION_STATUS_CODE } from '@/shared/lib/auction-status';
 import { buildSeed } from './seed';
 
@@ -279,7 +284,7 @@ export function recompute(record: AuctionRecord): void {
   const auctionType = detail.main.auc_type ?? 'Unknown';
   const isCompetitive = isCompetitiveAuction(auctionType);
   const isFinished = FINISHED_STATUSES.includes(
-      (trading.status ?? 'Unknown') as AuctionStatus,
+    (trading.status ?? 'Unknown') as AuctionStatus,
   );
 
   const activeBets = bets.filter((bet) => !bet.is_rejected);
@@ -288,10 +293,7 @@ export function recompute(record: AuctionRecord): void {
     const comparePrices = bestFirst(auctionType);
 
     activeBets.sort((firstBet, secondBet) =>
-        comparePrices(
-            firstBet.price_with_vat ?? 0,
-            secondBet.price_with_vat ?? 0,
-        ),
+      comparePrices(firstBet.price_with_vat ?? 0, secondBet.price_with_vat ?? 0),
     );
   }
 
@@ -313,25 +315,19 @@ export function recompute(record: AuctionRecord): void {
   const bestBet = activeBets[0];
 
   if (bestBet) {
-    price.current =
-        bestBet.price_with_vat ??
-        price.current ??
-        null;
+    price.current = bestBet.price_with_vat ?? price.current ?? null;
 
-    price.current_no_vat =
-        bestBet.price_no_vat ??
-        round2((price.current ?? 0) / 1.2);
+    price.current_no_vat = bestBet.price_no_vat ?? round2((price.current ?? 0) / 1.2);
   }
 
   price.available = calculateNextBidPrice(
-      auctionType,
-      price.current ?? null,
-      price.step ?? null,
+    auctionType,
+    price.current ?? null,
+    price.step ?? null,
   );
 
   const currentUserBet = activeBets.find(
-      (bet) =>
-          bet.organization_id === CURRENT_USER.organizationId,
+    (bet) => bet.organization_id === CURRENT_USER.organizationId,
   );
 
   const your = (trading.your ??= {});
@@ -350,8 +346,7 @@ export function recompute(record: AuctionRecord): void {
 
   your.bet = true;
   your.last_bet = currentUserBet.price_no_vat ?? null;
-  your.last_bet_with_vat =
-      currentUserBet.price_with_vat ?? null;
+  your.last_bet_with_vat = currentUserBet.price_with_vat ?? null;
   your.win = currentUserBet.is_win ?? false;
 
   trading.is_bidder = true;
@@ -362,9 +357,7 @@ export function recompute(record: AuctionRecord): void {
   }
 
   if (currentUserBet.place === 1) {
-    trading.status_mobile = isFinished
-        ? 'Winner'
-        : 'Leading';
+    trading.status_mobile = isFinished ? 'Winner' : 'Leading';
 
     return;
   }

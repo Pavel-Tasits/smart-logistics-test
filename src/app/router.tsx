@@ -10,10 +10,10 @@ import {
   useNavigate,
 } from '@tanstack/react-router';
 import {
-    auctionDetailSearchSchema,
-    auctionsSearchSchema,
-    type AuctionDetailTab,
-    type AuctionsSearch,
+  auctionDetailSearchSchema,
+  auctionsSearchSchema,
+  type AuctionDetailTab,
+  type AuctionsSearch,
 } from '@/entities/auction';
 
 // Lazy-loaded route components — each page ships as its own chunk.
@@ -55,10 +55,10 @@ function RootLayout() {
 const rootRoute = createRootRoute({ component: RootLayout });
 
 const auctionDetailRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/auctions/$auctionUuid',
-    validateSearch: auctionDetailSearchSchema,
-    component: AuctionDetailRouteComponent,
+  getParentRoute: () => rootRoute,
+  path: '/auctions/$auctionUuid',
+  validateSearch: auctionDetailSearchSchema,
+  component: AuctionDetailRouteComponent,
 });
 
 const indexRoute = createRoute({
@@ -85,24 +85,24 @@ function AuctionsRouteComponent() {
       <AuctionsPage
         search={search}
         onFiltersChange={(patch) =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                ...patch,
-                page: 1,
-              }),
-              replace: true,
-            })
+          navigate({
+            search: (prev) => ({
+              ...prev,
+              ...patch,
+              page: 1,
+            }),
+            replace: true,
+          })
         }
         onPageChange={(page) => navigate({ search: (prev) => ({ ...prev, page }) })}
         onResetFilters={() =>
-            navigate({
-              search: (prev) => ({
-                page: 1,
-                per_page: prev.per_page,
-              }),
-              replace: true,
-            })
+          navigate({
+            search: (prev) => ({
+              page: 1,
+              per_page: prev.per_page,
+            }),
+            replace: true,
+          })
         }
       />
     </Suspense>
@@ -110,32 +110,32 @@ function AuctionsRouteComponent() {
 }
 
 function AuctionDetailRouteComponent() {
-    const { auctionUuid } = auctionDetailRoute.useParams();
-    const { tab } = auctionDetailRoute.useSearch();
+  const { auctionUuid } = auctionDetailRoute.useParams();
+  const { tab } = auctionDetailRoute.useSearch();
 
-    const navigate = useNavigate({
-        from: auctionDetailRoute.fullPath,
+  const navigate = useNavigate({
+    from: auctionDetailRoute.fullPath,
+  });
+
+  const handleTabChange = (nextTab: AuctionDetailTab) => {
+    void navigate({
+      search: {
+        tab: nextTab,
+      },
+      replace: true,
     });
+  };
 
-    const handleTabChange = (nextTab: AuctionDetailTab) => {
-        void navigate({
-            search: {
-                tab: nextTab,
-            },
-            replace: true,
-        });
-    };
-
-    return (
-        <Suspense fallback={<PageLoader />}>
-            <AuctionDetailPage
-                auctionUuid={auctionUuid}
-                tab={tab}
-                onTabChange={handleTabChange}
-                betSlot={<Outlet />}
-            />
-        </Suspense>
-    );
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <AuctionDetailPage
+        auctionUuid={auctionUuid}
+        tab={tab}
+        onTabChange={handleTabChange}
+        betSlot={<Outlet />}
+      />
+    </Suspense>
+  );
 }
 
 const betRoute = createRoute({
@@ -145,29 +145,29 @@ const betRoute = createRoute({
 });
 
 function BetRouteComponent() {
-    const { auctionUuid } = betRoute.useParams();
-    const navigate = useNavigate({ from: betRoute.fullPath });
+  const { auctionUuid } = betRoute.useParams();
+  const navigate = useNavigate({ from: betRoute.fullPath });
 
-    return (
-        <Suspense
-            fallback={
-                <Center pos="fixed" inset={0}>
-                    <Loader size="sm" />
-                </Center>
-            }
-        >
-            <BetModalPage
-                auctionUuid={auctionUuid}
-                onClose={() =>
-                    navigate({
-                        to: '/auctions/$auctionUuid',
-                        params: { auctionUuid },
-                        search: true,
-                    })
-                }
-            />
-        </Suspense>
-    );
+  return (
+    <Suspense
+      fallback={
+        <Center pos="fixed" inset={0}>
+          <Loader size="sm" />
+        </Center>
+      }
+    >
+      <BetModalPage
+        auctionUuid={auctionUuid}
+        onClose={() =>
+          navigate({
+            to: '/auctions/$auctionUuid',
+            params: { auctionUuid },
+            search: true,
+          })
+        }
+      />
+    </Suspense>
+  );
 }
 
 const routeTree = rootRoute.addChildren([

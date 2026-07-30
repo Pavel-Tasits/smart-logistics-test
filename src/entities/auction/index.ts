@@ -29,7 +29,5 @@ export type {
   MyBetVM,
   AuctionRestrictionsVM,
 } from './model/view-models';
-export type {
-  AuctionDetailTab,
-} from './model/auction-detail-search.ts';
+export type { AuctionDetailTab } from './model/auction-detail-search.ts';
 export { auctionDetailSearchSchema } from './model/auction-detail-search.ts';

@@ -24,7 +24,7 @@ import {
 import { AuctionsFilter } from '@/features/auctions-filter';
 import { useAuctionPrefetch } from '@/features/prefetch-auction';
 import { uiStore } from '@/shared/stores/ui-store';
-import {AuctionActions} from "@/widgets/auctions-list";
+import { AuctionActions } from '@/widgets/auctions-list';
 
 interface AuctionsListWidgetProps {
   search: AuctionsSearch;
@@ -75,20 +75,20 @@ export const AuctionsListWidget = observer(function AuctionsListWidget({
       <Body query={query} prefetch={prefetch} onRetry={() => void query.refetch()} />
 
       {hasData && lastPage > 1 && (
-          <Center>
-            <Pagination
-                total={lastPage}
-                value={search.page}
-                onChange={onPageChange}
-                disabled={query.isPlaceholderData}
-            />
-          </Center>
+        <Center>
+          <Pagination
+            total={lastPage}
+            value={search.page}
+            onChange={onPageChange}
+            disabled={query.isPlaceholderData}
+          />
+        </Center>
       )}
 
       {hasData && (
-          <Text size="sm" c="dimmed" ta="center">
-            Найдено: {total}
-          </Text>
+        <Text size="sm" c="dimmed" ta="center">
+          Найдено: {total}
+        </Text>
       )}
     </Stack>
   );
