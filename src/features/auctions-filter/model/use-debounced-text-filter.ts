@@ -11,26 +11,39 @@ export function useDebouncedTextFilter({
                                            delay = 350,
                                            onCommit,
                                        }: UseDebouncedTextFilterOptions) {
-    const [draft, setDraft] = useState(value ?? '');
+    const externalValue = value ?? '';
+
+    const [draft, setDraft] = useState(externalValue);
+
     const onCommitRef = useRef(onCommit);
+    const previousExternalValueRef = useRef(externalValue);
 
     useEffect(() => {
         onCommitRef.current = onCommit;
     }, [onCommit]);
 
     useEffect(() => {
-        setDraft(value ?? '');
-    }, [value]);
+        if (externalValue === previousExternalValueRef.current) {
+            return;
+        }
+
+        previousExternalValueRef.current = externalValue;
+
+        // Локальный draft синхронизируется с URL после reset,
+        // Back/Forward или внешнего изменения search-параметров.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDraft(externalValue);
+    }, [externalValue]);
 
     useEffect(() => {
-        const normalizedValue = draft.trim() || undefined;
+        const normalizedDraft = draft.trim() || undefined;
 
-        if (normalizedValue === value) {
+        if (normalizedDraft === value) {
             return;
         }
 
         const timeoutId = window.setTimeout(() => {
-            onCommitRef.current(normalizedValue);
+            onCommitRef.current(normalizedDraft);
         }, delay);
 
         return () => {
