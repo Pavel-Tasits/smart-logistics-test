@@ -12,7 +12,7 @@ import type {
   ValidationError,
 } from '@/shared/api/types';
 import { CURRENT_USER } from '@/shared/config';
-import { bestFirst, calculateNextBidPrice, validateBidPrice } from '@/shared/lib/trading';
+import {bestFirst, calculateNextBidPrice, isCompetitiveAuction, validateBidPrice} from '@/shared/lib/trading';
 import { AUCTION_STATUS_CODE } from '@/shared/lib/auction-status';
 import { buildSeed } from './seed';
 
@@ -270,47 +270,106 @@ function sortDetails(details: AuctionShowResponse[], request: AuctionListRequest
 /** Recompute derived trading state after a mutation (ranks, current, your, status). */
 export function recompute(record: AuctionRecord): void {
   const { detail, bets } = record;
-  const t = detail.trading;
-  if (!t) return;
-  const type = detail.main.auc_type ?? 'Unknown';
-  const finished = FINISHED_STATUSES.includes((t.status ?? 'Unknown') as AuctionStatus);
+  const trading = detail.trading;
 
-  const active = bets.filter((b) => !b.is_rejected);
-  active.sort((a, b) => bestFirst(type)(a.price_with_vat ?? 0, b.price_with_vat ?? 0));
-  active.forEach((bet, index) => {
-    bet.place = index + 1;
-    bet.is_win = finished && index === 0;
+  if (!trading) {
+    return;
+  }
+
+  const auctionType = detail.main.auc_type ?? 'Unknown';
+  const isCompetitive = isCompetitiveAuction(auctionType);
+  const isFinished = FINISHED_STATUSES.includes(
+      (trading.status ?? 'Unknown') as AuctionStatus,
+  );
+
+  const activeBets = bets.filter((bet) => !bet.is_rejected);
+
+  if (isCompetitive) {
+    const comparePrices = bestFirst(auctionType);
+
+    activeBets.sort((firstBet, secondBet) =>
+        comparePrices(
+            firstBet.price_with_vat ?? 0,
+            secondBet.price_with_vat ?? 0,
+        ),
+    );
+  }
+
+  activeBets.forEach((bet, index) => {
+    bet.place = isCompetitive ? index + 1 : null;
+    bet.is_win = isCompetitive && isFinished && index === 0;
   });
+
   for (const bet of bets) {
-    if (bet.is_rejected) {
-      bet.place = null;
-      bet.is_win = false;
+    if (!bet.is_rejected) {
+      continue;
     }
+
+    bet.place = null;
+    bet.is_win = false;
   }
 
-  const price = (t.price ??= {});
-  if (active.length > 0) {
-    price.current = active[0].price_with_vat ?? price.current ?? null;
-    price.current_no_vat = active[0].price_no_vat ?? round2((price.current ?? 0) / 1.2);
-  }
-  price.available = calculateNextBidPrice(type, price.current ?? null, price.step ?? null);
+  const price = (trading.price ??= {});
+  const bestBet = activeBets[0];
 
-  const mine = active.find((b) => b.organization_id === CURRENT_USER.organizationId);
-  const your = (t.your ??= {});
-  if (mine) {
-    your.bet = true;
-    your.last_bet = mine.price_no_vat ?? null;
-    your.last_bet_with_vat = mine.price_with_vat ?? null;
-    your.win = mine.is_win ?? false;
-    t.status_mobile = mine.place === 1 ? (finished ? 'Winner' : 'Leading') : 'Losing';
-  } else {
+  if (bestBet) {
+    price.current =
+        bestBet.price_with_vat ??
+        price.current ??
+        null;
+
+    price.current_no_vat =
+        bestBet.price_no_vat ??
+        round2((price.current ?? 0) / 1.2);
+  }
+
+  price.available = calculateNextBidPrice(
+      auctionType,
+      price.current ?? null,
+      price.step ?? null,
+  );
+
+  const currentUserBet = activeBets.find(
+      (bet) =>
+          bet.organization_id === CURRENT_USER.organizationId,
+  );
+
+  const your = (trading.your ??= {});
+
+  if (!currentUserBet) {
     your.bet = false;
     your.last_bet = null;
     your.last_bet_with_vat = null;
     your.win = false;
-    t.status_mobile = 'NotParticipating';
+
+    trading.status_mobile = 'NotParticipating';
+    trading.is_bidder = false;
+
+    return;
   }
-  t.is_bidder = your.bet;
+
+  your.bet = true;
+  your.last_bet = currentUserBet.price_no_vat ?? null;
+  your.last_bet_with_vat =
+      currentUserBet.price_with_vat ?? null;
+  your.win = currentUserBet.is_win ?? false;
+
+  trading.is_bidder = true;
+
+  if (!isCompetitive) {
+    trading.status_mobile = 'Confirmed';
+    return;
+  }
+
+  if (currentUserBet.place === 1) {
+    trading.status_mobile = isFinished
+        ? 'Winner'
+        : 'Leading';
+
+    return;
+  }
+
+  trading.status_mobile = 'Losing';
 }
 
 export function deriveListItem(detail: AuctionShowResponse): AuctionListItem {

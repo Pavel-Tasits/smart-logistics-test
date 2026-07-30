@@ -1,4 +1,8 @@
-import type {AuctionType, CompetitiveAuctionType, ValidationError} from '@/shared/api/types';
+import type {
+  AuctionType,
+  CompetitiveAuctionType,
+  ValidationError,
+} from '@/shared/api/types';
 
 export interface BetBounds {
   min: number | null;
@@ -6,15 +10,22 @@ export interface BetBounds {
   step: number | null;
 }
 
-/**
- * Reverse auctions: the lower the price, the better (carrier competes down).
- * Applies to Down and Request. Up goes higher; FixPrice has no competition.
- */
-export function isReverseAuction(type: AuctionType): boolean {
+export function isCompetitiveAuction(
+    type: AuctionType,
+): type is CompetitiveAuctionType {
+  return type === 'Request' || type === 'Up' || type === 'Down';
+}
+
+export function isReverseAuction(
+    type: AuctionType,
+): type is Extract<CompetitiveAuctionType, 'Down' | 'Request'> {
   return type === 'Down' || type === 'Request';
 }
 
-/** Comparator that sorts bet prices best-first for the given auction type. */
+/**
+ * Возвращает компаратор для конкурентного аукциона:
+ * лучшая ставка располагается первой.
+ */
 export function bestFirst(
     type: CompetitiveAuctionType,
 ): (a: number, b: number) => number {
@@ -23,13 +34,22 @@ export function bestFirst(
       : (a, b) => b - a;
 }
 
-/** Next price the user is allowed to bid, given the current price and step. */
+/**
+ * Рассчитывает следующую доступную цену.
+ * Для фиксированной или неизвестной модели торгов следующей цены нет.
+ */
 export function calculateNextBidPrice(
     type: AuctionType,
     current: number | null,
     step: number | null,
-): number | null | undefined {
-  if (current == null || step == null) {
+): number | null {
+  if (
+      current == null ||
+      step == null ||
+      !Number.isFinite(current) ||
+      !Number.isFinite(step) ||
+      step <= 0
+  ) {
     return null;
   }
 
@@ -42,6 +62,7 @@ export function calculateNextBidPrice(
       return current + step;
 
     case 'FixPrice':
+    case 'Unknown':
       return null;
   }
 }
@@ -49,56 +70,65 @@ export function calculateNextBidPrice(
 function approximatelyEqual(a: number, b: number): boolean {
   return (
       Math.abs(a - b) <=
-      Number.EPSILON * Math.max(1, Math.abs(a), Math.abs(b)) * 10
+      Number.EPSILON *
+      Math.max(1, Math.abs(a), Math.abs(b)) *
+      10
   );
 }
 
-function isAlignedToStep(price: number, base: number, step: number): boolean {
+function isAlignedToStep(
+    price: number,
+    base: number,
+    step: number,
+): boolean {
   const units = (price - base) / step;
+
   return approximatelyEqual(units, Math.round(units));
 }
 
-/**
- * Validate a proposed bid price against the trading bounds.
- * Pure function — returns contract-shaped validation errors (empty = valid).
- */
-export function validateBidPrice(price: number, bounds: BetBounds): ValidationError[] {
-  const errors: ValidationError[] = [];
-
+export function validateBidPrice(
+    price: number,
+    bounds: BetBounds,
+): ValidationError[] {
   if (!Number.isFinite(price) || price <= 0) {
-    errors.push({
-      field: 'price',
-      message: 'Цена должна быть больше 0',
-      code: 'positive',
-    });
-    return errors;
+    return [
+      {
+        field: 'price',
+        message: 'Цена должна быть больше 0',
+        code: 'positive',
+      },
+    ];
   }
 
-  if (bounds.min != null && price < bounds.min) {
+  const errors: ValidationError[] = [];
+  const { min, max, step } = bounds;
+
+  if (min != null && price < min) {
     errors.push({
       field: 'price',
-      message: `Цена не может быть ниже ${bounds.min}`,
+      message: `Цена не может быть ниже ${min}`,
       code: 'below_min',
     });
   }
 
-  if (bounds.max != null && price > bounds.max) {
+  if (max != null && price > max) {
     errors.push({
       field: 'price',
-      message: `Цена не может быть выше ${bounds.max}`,
+      message: `Цена не может быть выше ${max}`,
       code: 'above_max',
     });
   }
 
-  if (bounds.step != null && bounds.step > 0) {
-    const base = bounds.min ?? 0;
-    if (!isAlignedToStep(price, base, bounds.step)) {
+  if (step != null && step > 0) {
+    const base = min ?? 0;
+
+    if (!isAlignedToStep(price, base, step)) {
       errors.push({
         field: 'price',
         message:
-            bounds.min != null
-                ? `Цена должна изменяться с шагом ${bounds.step}, начиная от ${bounds.min}`
-                : `Цена должна быть кратна шагу ${bounds.step}`,
+            min != null
+                ? `Цена должна изменяться с шагом ${step}, начиная от ${min}`
+                : `Цена должна быть кратна шагу ${step}`,
         code: 'not_aligned_to_step',
       });
     }
