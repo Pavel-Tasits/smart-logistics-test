@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+src/shared/api/schema.gen.ts
+public/mockServiceWorker.js
+package-lock.json
+openapi.auctions.v0.json
