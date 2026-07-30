@@ -119,10 +119,9 @@ function AuctionDetailRouteComponent() {
 
     const handleTabChange = (nextTab: AuctionDetailTab) => {
         void navigate({
-            search: (prev: any) => ({
-                ...prev,
+            search: {
                 tab: nextTab,
-            }),
+            },
             replace: true,
         });
     };
@@ -146,24 +145,29 @@ const betRoute = createRoute({
 });
 
 function BetRouteComponent() {
-  const { auctionUuid } = betRoute.useParams();
-  const navigate = useNavigate({ from: betRoute.fullPath });
-  return (
-      <Suspense
-          fallback={
-            <Center pos="fixed" inset={0}>
-              <Loader size="sm" />
-            </Center>
-          }
-      >
-      <BetModalPage
-        auctionUuid={auctionUuid}
-        onClose={() =>
-          navigate({ to: '/auctions/$auctionUuid', params: { auctionUuid } })
-        }
-      />
-    </Suspense>
-  );
+    const { auctionUuid } = betRoute.useParams();
+    const navigate = useNavigate({ from: betRoute.fullPath });
+
+    return (
+        <Suspense
+            fallback={
+                <Center pos="fixed" inset={0}>
+                    <Loader size="sm" />
+                </Center>
+            }
+        >
+            <BetModalPage
+                auctionUuid={auctionUuid}
+                onClose={() =>
+                    navigate({
+                        to: '/auctions/$auctionUuid',
+                        params: { auctionUuid },
+                        search: true,
+                    })
+                }
+            />
+        </Suspense>
+    );
 }
 
 const routeTree = rootRoute.addChildren([
