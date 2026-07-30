@@ -8,7 +8,7 @@ import type {
 } from '@/shared/api/types';
 import { BidRejectedError, ValidationRejectedError, store } from './db';
 
-const url = (path: string) => `${API_BASE_URL}${path}`;
+const url = (path: string) => `*${API_BASE_URL}${path}`;
 const PROBLEM_JSON = { 'Content-Type': 'application/problem+json' };
 
 function notFound() {
